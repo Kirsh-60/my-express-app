@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const db = require('../../config/db') // 调用你的 MySQL 连接池
 const svgCaptcha = require('svg-captcha') // 验证码
-const bcrypt = require('bcrypt') // 补充这一行
+const bcrypt = require('bcryptjs');
 
 // 2. 验证码接口
 router.get('/captcha', (req, res) => {

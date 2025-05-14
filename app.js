@@ -96,5 +96,5 @@ app.use((err, req, res, next) => {
 // 启动服务器
 const PORT = 3000
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on http://localhost:${PORT}`)
+  console.log(`Server is running on http://81.70.28.17:${PORT}`)
 })

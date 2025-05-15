@@ -11,15 +11,23 @@ const cookieParser = require('cookie-parser')
 
 const app = express()
 
+// 跨域支持，注意指定 origin
+app.use(cors({
+  origin: ['http://81.70.28.17', 'http://81.70.28.17.nip.io'],  // 你的前端地址列表
+  credentials: true,
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','X-Requested-With']
+}))
+
+// 处理所有 preflight 请求
+app.options('*', cors({
+  origin: ['http://81.70.28.17', 'http://81.70.28.17.nip.io'],
+  credentials: true
+}))
+
 // 安全相关中间件
 app.use(helmet())
 
-// 跨域支持
-app.use(
-  cors({
-    credentials: true, // 允许跨域携带 Cookie
-  })
-)
 
 // 日志记录
 app.use(morgan('dev'))

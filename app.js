@@ -17,7 +17,7 @@ app.use(helmet())
 // 跨域支持
 app.use(
   cors({
-    origin: 'http://localhost:3000', // 前端页面地址
+    origin: 'http://81.70.28.17:3000', // 允许的源地址
     credentials: true, // 允许跨域携带 Cookie
   })
 )

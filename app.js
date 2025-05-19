@@ -43,13 +43,18 @@ app.use(
     saveUninitialized: false, // 是否在未初始化的 session 存储到数据库，建议设置为 false
     captcha: '', // 验证码存储在 session 中
     cookie: {
-      secure: false, // 如果上线了 HTTPS，可改为 true
+      secure: true, // 如果上线了 HTTPS，可改为 true
       sameSite: 'lax', // 允许跨站点携带 // 开发阶段用 lax 或 strict
       maxAge: 1000 * 60 * 30, // 30 分钟
     },
   })
 )
-
+app.use((req, res, next) => {
+  if (!req.secure) {
+    return res.redirect(`https://${req.headers.host}${req.url}`)
+  }
+  next()
+})
 // 启动前测试 MySQL 连接
 ;(async () => {
   try {

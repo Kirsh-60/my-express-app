@@ -653,5 +653,16 @@ router.post('/register', async (req, res) => {
     console.error(err)
     res.status(500).json({ error: '注册失败' })
   }
+}) 
+// 登出接口
+router.post('/logout', (req, res) => {
+  // 清除会话
+  req.session.destroy(err => {
+    if (err) {
+      console.error('登出失败：', err)
+      return res.status(200).json({ error: '登出失败' })
+    }
+    res.json({ success: true, message: '登出成功' })
+  })
 })
 module.exports = router

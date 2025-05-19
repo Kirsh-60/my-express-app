@@ -43,8 +43,8 @@ app.use(
     saveUninitialized: false, // 是否在未初始化的 session 存储到数据库，建议设置为 false
     captcha: '', // 验证码存储在 session 中
     cookie: {
-      secure: false, // 如果上线了 HTTPS，可改为 true
-      sameSite: 'lax', // 允许跨站点携带 // 开发阶段用 lax 或 strict
+      secure: process.env.NODE_ENV === 'production', // HTTPS 时设为 true
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 1000 * 60 * 30, // 30 分钟
     },
   })

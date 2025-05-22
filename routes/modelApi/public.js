@@ -50,7 +50,7 @@ router.post('/uploadImgs', upload.single('image'), (req, res) => {
     return res.json({
       code: 200,
       data: {
-        imageUrl: `/uploads/${hash}-${req.file.originalname}`,
+        imageUrl: `http://81.70.28.17:3000/uploads/${hash}-${req.file.originalname}`,
       },
     })
   }

@@ -4,9 +4,11 @@ const router = express.Router()
 const usersRouter = require('./modelApi/user')
 const systemRouter = require('./modelApi/system')
 const goodsRouter = require('./modelApi/goods')
+const publicRouter = require('./modelApi/public')
 
 router.use('/users', usersRouter)
 router.use('/system', systemRouter)
-router.use('/goods', goodsRouter)
+router.use('/goodsList', goodsRouter)
+router.use('/public', publicRouter)
 
 module.exports = router

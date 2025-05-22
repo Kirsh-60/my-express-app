@@ -8,6 +8,7 @@ const helmet = require('helmet')
 const cors = require('cors')
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
+const path = require('path');
 
 const app = express()
 
@@ -92,7 +93,8 @@ app.use((err, req, res, next) => {
   console.error(err)
   res.json({ code: -1, message: err.message || 'Internal Server Error' })
 })
-
+// ----------------- 上传图片 -----------------
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 // 启动服务器
 const PORT = 3000
 app.listen(PORT, '0.0.0.0', () => {

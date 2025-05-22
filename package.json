@@ -21,6 +21,7 @@
     "express-session": "^1.18.1",
     "helmet": "^8.1.0",
     "morgan": "^1.10.0",
+    "multer": "^2.0.0",
     "mysql2": "^3.14.1",
     "nodejs-websocket": "^1.7.2",
     "svg-captcha": "^1.4.0"

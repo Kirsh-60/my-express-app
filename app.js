@@ -90,6 +90,11 @@ app.use('/api', apiRouter)
 
 // 全局异常拦截，返回 code = -1
 app.use((err, req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept'
+  )
   res.status(500).json({
     code: -1,
     error: err.message || 'Internal Server Error',

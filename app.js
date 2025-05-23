@@ -8,7 +8,7 @@ const helmet = require('helmet')
 const cors = require('cors')
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
-const path = require('path');
+const path = require('path')
 
 const app = express()
 
@@ -90,8 +90,11 @@ app.use('/api', apiRouter)
 
 // 全局异常拦截，返回 code = -1
 app.use((err, req, res, next) => {
-  console.error(err)
-  res.json({ code: -1, message: err.message || 'Internal Server Error' })
+  res.status(500).json({
+    code: -1,
+    error: err.message || 'Internal Server Error',
+    data: null,
+  })
 })
 // ----------------- 上传图片 -----------------
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))

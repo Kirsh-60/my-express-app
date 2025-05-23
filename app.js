@@ -104,7 +104,7 @@ app.use((err, req, res, next) => {
 // ----------------- 上传图片 -----------------
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 // 启动服务器
-const PORT = 3000
+const PORT = 80
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on http://81.70.28.17:${PORT}`)
 })

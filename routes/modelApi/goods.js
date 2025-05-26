@@ -103,4 +103,54 @@ router.post('/addGoods', async (req, res) => {
   }
 })
 
+// 删除商品接口
+router.get('/deleteGoods/:id', async (req, res) => {
+  const goodsId = req.params.id
+  console.log('删除商品请求参数：', req.params) // 打印请求参数
+
+  // 检查商品 ID 是否为空
+  if (!goodsId) {
+    return res.status(200).json({
+      data: {
+        code: -1,
+        msg: '商品 ID 不能为空',
+        data: null,
+      },
+    })
+  }
+
+  const sql = 'DELETE FROM goods WHERE id = ?'
+  const params = [goodsId]
+
+  try {
+    const [result] = await db.query(sql, params)
+    if (result.affectedRows > 0) {
+      res.status(200).json({
+        data: {
+          code: 200,
+          msg: '删除商品成功',
+          data: null,
+        },
+      })
+    } else {
+      res.status(200).json({
+        data: {
+          code: -1,
+          msg: '商品不存在或已被删除',
+          data: null,
+        },
+      })
+    }
+  } catch (err) {
+    console.error('删除商品失败：', err)
+    res.status(200).json({
+      data: {
+        code: -1,
+        msg: '删除商品失败',
+        data: null,
+      },
+    })
+  }
+})
+
 module.exports = router

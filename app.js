@@ -78,10 +78,10 @@ app.use((req, res, next) => {
 })
 
 // 路由设置
-const indexRouter = require('./routes/index')
+// const indexRouter = require('./routes/index')
 const apiRouter = require('./routes/api')
-app.use('/', indexRouter)
-app.use('/api', apiRouter)
+// app.use('/', indexRouter)
+app.use('/', apiRouter)
 
 // // 404 统一返回 code = -1
 // app.use((req, res) => {

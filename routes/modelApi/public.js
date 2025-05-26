@@ -50,7 +50,7 @@ router.post('/uploadImgs', upload.single('image'), (req, res) => {
     return res.json({
       code: 200,
       data: {
-        imageUrl: `http://81.70.28.17:3000/uploads/${hash}-${req.file.originalname}`,
+        imageUrl: `https://blackbuy.asia/uploads/${hash}-${req.file.originalname}`,
       },
     })
   }
@@ -62,7 +62,7 @@ router.post('/uploadImgs', upload.single('image'), (req, res) => {
     code: 200,
     msg: '图片上传成功',
     data: {
-      imageUrl: `http://81.70.28.17:3000/uploads/${hash}-${req.file.originalname}`,
+      imageUrl: `https://blackbuy.asia/uploads/${hash}-${req.file.originalname}`,
     },
   })
 })

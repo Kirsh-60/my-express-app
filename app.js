@@ -81,7 +81,7 @@ app.use((req, res, next) => {
 // const indexRouter = require('./routes/index')
 const apiRouter = require('./routes/api')
 // app.use('/', indexRouter)
-app.use('/', apiRouter)
+app.use('/api', apiRouter)
 
 // // 404 统一返回 code = -1
 // app.use((req, res) => {

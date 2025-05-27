@@ -9,9 +9,9 @@ const cors = require('cors')
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
 const path = require('path')
-
 const app = express()
 
+const jwt = require('jsonwebtoken')
 // 安全相关中间件
 app.use(helmet())
 
@@ -63,6 +63,45 @@ app.use(
   }
 })()
 
+// 路由设置
+const apiRouter = require('./routes/api')
+
+// 定义 JWT 白名单接口，无需认证
+const whiteList = [
+  '/users/login', // 登录接口
+  '/users/captcha' // 获取验证码接口
+  // 如需更多开放接口，按需添加
+]
+
+// JWT 验证中间件
+const jwtAuth = (req, res, next) => {
+  // 白名单路径直接放行
+  console.log('请求路径：', req.path)
+  if (whiteList.includes(req.path)) {
+    console.log('跳过认证，访问白名单接口：', req.path)
+    return next()
+  }
+  const token = req.Token || req.cookies.token || req.headers.authorization?.split(' ')[1]
+  console.log('JWT 验证中间件：', token)
+  if (!token) {
+    return res.status(401).json({ error: '登录过期，请重新登录' })
+  }
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET) // 使用环境变量中的 JWT 密钥
+    console.log('JWT 验证成功，用户信息：', req.user)
+    next()
+  } catch (err) {
+    res.clearCookie('token')
+    return res.status(401).json({ error: '登录过期，请重新登录' })
+  }
+}
+
+// 应用 JWT 中间件到 /api 路由
+app.use('/api', jwtAuth, apiRouter)
+
+// ----------------- 上传图片 -----------------
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+
 // ----------------- 全局响应格式化 -----------------
 // 将所有正常的 res.json(xxx) 自动变成 { code:200, data:xxx }
 app.use((req, res, next) => {
@@ -76,18 +115,6 @@ app.use((req, res, next) => {
   }
   next()
 })
-
-// 路由设置
-// const indexRouter = require('./routes/index')
-const apiRouter = require('./routes/api')
-// app.use('/', indexRouter)
-app.use('/api', apiRouter)
-
-// // 404 统一返回 code = -1
-// app.use((req, res) => {
-//   res.json({ code: -1, message: 'Not Found' })
-// })
-
 // 全局异常拦截，返回 code = -1
 app.use((err, req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*')
@@ -101,8 +128,7 @@ app.use((err, req, res, next) => {
     data: null,
   })
 })
-// ----------------- 上传图片 -----------------
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+
 // 启动服务器
 const PORT = 3000
 app.listen(PORT, '0.0.0.0', () => {

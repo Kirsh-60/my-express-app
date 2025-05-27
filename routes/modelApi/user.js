@@ -2,8 +2,8 @@ const express = require('express')
 const router = express.Router()
 const db = require('../../config/db') // 调用你的 MySQL 连接池
 const svgCaptcha = require('svg-captcha') // 验证码
-const bcrypt = require('bcryptjs');
-
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
 // 2. 验证码接口
 router.get('/captcha', (req, res) => {
   const captcha = svgCaptcha.create({
@@ -55,9 +55,21 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ code: -1, error: '用户不存在或密码错误' })
     }
 
+    // 生成 JWT token
+    const payload = { sub: user.id, username: user.username }
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' })
+    // 将 token 写入 HTTP-only cookie
+    res.cookie('token', token, {
+      httpOnly: true, // 只能通过 HTTP 请求访问，JavaScript 无法访问
+      secure: process.env.NODE_ENV === 'production', // 生产环境下使用 HTTPS 时设置为 true
+      sameSite: 'lax', // 防止 CSRF 攻击
+      // 设置 cookie 的过期时间为 2 小时
+      maxAge: 20 * 1000, // 20 秒用于测试，实际应用中可以设置为 2 * 60 * 60 * 1000
+    })
     // 4. 登录成功，写入会话
-    req.session.user = { id: user.id, username: user.username }
-    res.json({ success: true, message: '登录成功' })
+    req.session.user = { id: user.id, username: user.username, token }
+
+    res.json({ success: true, message: '登录成功', data: { token } })
   } catch (err) {
     console.error('登录失败：', err)
     res.status(500).json({ code: 500, error: '服务器内部错误' })
@@ -653,15 +665,20 @@ router.post('/register', async (req, res) => {
     console.error(err)
     res.status(500).json({ error: '注册失败' })
   }
-}) 
+})
 // 登出接口
 router.post('/logout', (req, res) => {
   // 清除会话
-  req.session.destroy(err => {
+  req.session.destroy((err) => {
     if (err) {
       console.error('登出失败：', err)
       return res.status(200).json({ error: '登出失败' })
     }
+    res.clearCookie('token', {
+      httpOnly: true, // 只能通过 HTTP 请求访问，JavaScript 无法访问
+      secure: process.env.NODE_ENV === 'production', // 生产环境下使用 HTTPS 时设置为 true
+      sameSite: 'lax', // 防止 CSRF 攻击
+    })
     res.json({ success: true, message: '登出成功' })
   })
 })

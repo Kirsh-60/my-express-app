@@ -9,7 +9,7 @@ router.get('/captcha', (req, res) => {
   const captcha = svgCaptcha.create({
     size: 4, // 验证码长度
     ignoreChars: '0o1i', // 忽略的字符
-    noise: 5, // 干扰线数量
+    noise: 1, // 干扰线数量
     color: true, // 是否有颜色
     background: '#f0f0f0', // 背景颜色
   })
@@ -64,7 +64,7 @@ router.post('/login', async (req, res) => {
       secure: process.env.NODE_ENV === 'production', // 生产环境下使用 HTTPS 时设置为 true
       sameSite: 'lax', // 防止 CSRF 攻击
       // 设置 cookie 的过期时间为 2 小时
-      maxAge: 20 * 1000, // 20 秒用于测试，实际应用中可以设置为 2 * 60 * 60 * 1000
+      maxAge: 2 * 60 * 60 * 1000, // 20 * 1000 20 秒用于测试，实际应用中可以设置为 2 * 60 * 60 * 1000
     })
     // 4. 登录成功，写入会话
     req.session.user = { id: user.id, username: user.username, token }
@@ -96,37 +96,20 @@ router.get('/getInfo', (req, res) => {
       },
       menus: [
         {
-          id: 5,
-          rule_id: 0,
+          id: 10,
+          rule_id: 5,
           status: 1,
-          create_time: '2019-08-11 13:36:09',
-          update_time: '2021-12-21 19:31:11',
+          create_time: '2019-08-11 13:37:02',
+          update_time: '2021-12-21 20:21:23',
           name: '后台面板',
           desc: 'index',
-          frontpath: null,
+          frontpath: '/',
           condition: null,
           menu: 1,
-          order: 1,
-          icon: 'help',
+          order: 20,
+          icon: 'home-filled',
           method: 'GET',
-          child: [
-            {
-              id: 10,
-              rule_id: 5,
-              status: 1,
-              create_time: '2019-08-11 13:37:02',
-              update_time: '2021-12-21 20:21:23',
-              name: '主控台',
-              desc: 'index',
-              frontpath: '/',
-              condition: null,
-              menu: 1,
-              order: 20,
-              icon: 'home-filled',
-              method: 'GET',
-              child: [],
-            },
-          ],
+          child: [],
         },
         {
           id: 6,
@@ -204,6 +187,55 @@ router.get('/getInfo', (req, res) => {
               menu: 1,
               order: 50,
               icon: 'postcard',
+              method: 'GET',
+              child: [],
+            },
+          ],
+        },
+        {
+          id: 13,
+          rule_id: 0,
+          status: 1,
+          create_time: '2021-12-21 19:38:21',
+          update_time: '2021-12-21 19:38:21',
+          name: '低代码tuiPlus',
+          desc: '',
+          frontpath: '',
+          condition: '',
+          menu: 1,
+          order: 3,
+          icon: 'user',
+          method: 'GET',
+          child: [
+            {
+              id: 21,
+              rule_id: 173,
+              status: 1,
+              create_time: '2019-12-28 13:46:45',
+              update_time: '2021-12-21 20:22:35',
+              name: '基础组件',
+              desc: 'light_baseComponents_list',
+              frontpath: '/light/baseComponents',
+              condition: '',
+              menu: 1,
+              order: 20,
+              icon: 'user-filled',
+              method: 'GET',
+              child: [],
+            },
+            {
+              id: 22,
+              rule_id: 173,
+              status: 1,
+              create_time: '2019-12-28 13:46:59',
+              update_time: '2021-12-21 20:22:44',
+              name: '高级组件',
+              desc: 'light_highComponents_list',
+              frontpath: '/light/highComponents',
+              condition: '',
+              menu: 1,
+              order: 20,
+              icon: 'data-analysis',
               method: 'GET',
               child: [],
             },

@@ -1,0 +1,10 @@
+-- 创建用户表
+CREATE TABLE IF NOT EXISTS app_users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    openid VARCHAR(50) NOT NULL UNIQUE COMMENT '微信用户唯一标识',
+    name VARCHAR(100) DEFAULT '微信用户' COMMENT '用户昵称',
+    avatar TEXT COMMENT '用户头像URL',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_openid (openid)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='微信用户表';

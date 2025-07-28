@@ -5,12 +5,12 @@ const usersRouter = require('./modelApi/user')
 const systemRouter = require('./modelApi/system')
 const goodsRouter = require('./modelApi/goods')
 const publicRouter = require('./modelApi/public')
-const mockRouter = require('./modelApi/mock')
+const wxappRouter = require('./wechat/user')
 
 router.use('/users', usersRouter)
 router.use('/system', systemRouter)
 router.use('/goodsList', goodsRouter)
 router.use('/public', publicRouter)
-router.use('/mock', mockRouter)
+router.use('/wechat', wxappRouter)
 
 module.exports = router

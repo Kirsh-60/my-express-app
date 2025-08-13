@@ -71,6 +71,7 @@ const whiteList = [
     '/users/login', // 登录接口
     '/users/captcha', // 获取验证码接口
     '/users/register', //用户注册接口
+    '/system/system', // 系统信息接口
     // 如需更多开放接口，按需添加
 ]
 

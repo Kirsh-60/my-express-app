@@ -86,9 +86,7 @@ const jwtAuth = (req, res, next) => {
     const token =
         req.Token ||
         req.cookies.token ||
-        req.headers.authorization?.split(' ')[1] || 
-        req.data.data.token
-    console.log('请求头 Authorization：', req)
+        req.headers.authorization?.split(' ')[1]
     console.log('JWT 验证中间件：', token)
     if (!token) {
         return res.status(401).json({ error: '登录过期，请重新登录' })

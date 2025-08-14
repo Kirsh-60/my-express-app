@@ -8,8 +8,17 @@ const jwt = require("jsonwebtoken");
 // JWT 验证中间件
 const authenticateToken = (req, res, next) => {
   try {
+    console.log('=== JWT 验证中间件调试信息 ===');
+    console.log('请求头信息:', {
+      'user-agent': req.headers['user-agent'],
+      'cookie': req.headers.cookie,
+      'authorization': req.headers.authorization
+    });
+    console.log('req.cookies:', req.cookies);
+    console.log('req.session:', req.session);
+    
     // 从多个地方尝试获取 token
-    let token = req.cookies.token;
+    let token = req.cookies?.token;
     
     // 如果 cookie 中没有，尝试从 Authorization header 获取
     if (!token && req.headers.authorization) {
@@ -24,28 +33,29 @@ const authenticateToken = (req, res, next) => {
       token = req.session.user.token;
     }
     
-    console.log('JWT 验证中间件：', {
-      cookie: req.cookies.token,
+    console.log('Token获取结果:', {
+      cookie: req.cookies?.token,
       authorization: req.headers.authorization,
       sessionToken: req.session?.user?.token,
-      finalToken: token
+      finalToken: token ? `${token.substring(0, 20)}...` : null
     });
 
     if (!token) {
+      console.log('❌ 未找到有效的token');
       return res.status(401).json({ code: -1, message: "未提供访问令牌" });
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
       if (err) {
-        console.error('JWT 验证失败:', err.message);
+        console.error('❌ JWT 验证失败:', err.message);
         return res.status(403).json({ code: -1, message: "令牌无效或已过期" });
       }
       req.user = user;
-      console.log('JWT 验证成功:', user);
+      console.log('✅ JWT 验证成功:', user);
       next();
     });
   } catch (error) {
-    console.error("Token verification error:", error);
+    console.error("❌ Token verification error:", error);
     return res.status(500).json({ code: 500, message: "服务器内部错误" });
   }
 };
@@ -108,28 +118,57 @@ router.post("/login", async (req, res) => {
       expiresIn: "2h",
     });
     
+    console.log('=== 登录成功，准备设置Cookie ===');
+    console.log('生成的token:', `${token.substring(0, 20)}...`);
+    console.log('Cookie配置:', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 2 * 60 * 60 * 1000
+    });
+    
     // 将 token 写入 HTTP-only cookie
     res.cookie("token", token, {
-      httpOnly: true, // 只能通过 HTTP 请求访问，JavaScript 无法访问
-      secure: process.env.NODE_ENV === "production", // 生产环境下使用 HTTPS 时设置为 true
-      sameSite: "lax", // 防止 CSRF 攻击
-      path: "/", // 确保 cookie 在整个应用中可用
-      // 设置 cookie 的过期时间为 2 小时
+      httpOnly: true,
+      secure: false, // 开发环境强制设置为false
+      sameSite: "lax",
+      path: "/",
       maxAge: 2 * 60 * 60 * 1000,
     });
     
     // 4. 登录成功，写入会话
     req.session.user = { id: user.id, username: user.username, token };
     
-    console.log('登录成功，设置 cookie 和 session:', {
+    // 保存session
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error('Session保存失败:', saveErr);
+      } else {
+        console.log('✅ Session保存成功');
+      }
+    });
+    
+    console.log('✅ 登录成功，已设置cookie和session:', {
       userId: user.id,
       username: user.username,
-      tokenSet: !!token
+      tokenSet: !!token,
+      sessionId: req.sessionID
     });
 
-    res.json({ success: true, message: "登录成功", data: { token } });
+    res.json({ 
+      success: true, 
+      message: "登录成功", 
+      data: { 
+        token,
+        user: {
+          id: user.id,
+          username: user.username
+        }
+      } 
+    });
   } catch (err) {
-    console.error("登录失败：", err);
+    console.error("❌ 登录失败：", err);
     res.status(500).json({ code: 500, error: "服务器内部错误" });
   }
 });

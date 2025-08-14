@@ -86,7 +86,8 @@ const jwtAuth = (req, res, next) => {
     const token =
         req.Token ||
         req.cookies.token ||
-        req.headers.authorization?.split(' ')[1]
+        req.headers.authorization?.split(' ')[1] || 
+        req.data.data.token
     console.log('请求头 Authorization：', req)
     console.log('JWT 验证中间件：', token)
     if (!token) {

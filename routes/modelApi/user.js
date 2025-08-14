@@ -12,7 +12,8 @@ const authenticateToken = (req, res, next) => {
     console.log('请求头信息:', {
       'user-agent': req.headers['user-agent'],
       'cookie': req.headers.cookie,
-      'authorization': req.headers.authorization
+      'authorization': req.headers.authorization,
+      'token': req.headers.token // 添加token header的日志
     });
     console.log('req.cookies:', req.cookies);
     console.log('req.session:', req.session);
@@ -20,7 +21,12 @@ const authenticateToken = (req, res, next) => {
     // 从多个地方尝试获取 token
     let token = req.cookies?.token;
     
-    // 如果 cookie 中没有，尝试从 Authorization header 获取
+    // 如果 cookie 中没有，尝试从直接的 token header 获取
+    if (!token && req.headers.token) {
+      token = req.headers.token;
+    }
+    
+    // 如果还是没有，尝试从 Authorization header 获取
     if (!token && req.headers.authorization) {
       const authHeader = req.headers.authorization;
       if (authHeader.startsWith('Bearer ')) {
@@ -34,9 +40,10 @@ const authenticateToken = (req, res, next) => {
     }
     
     console.log('Token获取结果:', {
-      cookie: req.cookies?.token,
+      cookie: req.cookies?.token ? `${req.cookies.token.substring(0, 20)}...` : null,
+      headerToken: req.headers.token ? `${req.headers.token.substring(0, 20)}...` : null,
       authorization: req.headers.authorization,
-      sessionToken: req.session?.user?.token,
+      sessionToken: req.session?.user?.token ? `${req.session.user.token.substring(0, 20)}...` : null,
       finalToken: token ? `${token.substring(0, 20)}...` : null
     });
 

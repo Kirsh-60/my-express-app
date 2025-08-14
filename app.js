@@ -83,19 +83,32 @@ const jwtAuth = (req, res, next) => {
         console.log('跳过认证，访问白名单接口：', req.path)
         return next()
     }
-    const token =
+    
+    // 修复token获取逻辑
+    const token = 
         req.Token ||
         req.cookies.token ||
-        req.headers.authorization?.split(' ')[1]
-    console.log('JWT 验证中间件：', token)
+        req.headers.token ||  // 添加从headers直接获取token
+        (req.headers.authorization && req.headers.authorization.split(' ')[1])
+    
+    console.log('JWT 验证中间件 - Token获取结果:', {
+        fromCookie: req.cookies.token ? `${req.cookies.token.substring(0, 20)}...` : null,
+        fromHeader: req.headers.token ? `${req.headers.token.substring(0, 20)}...` : null,
+        fromAuth: req.headers.authorization,
+        finalToken: token ? `${token.substring(0, 20)}...` : null
+    })
+    
     if (!token) {
+        console.log('❌ 未找到token')
         return res.status(401).json({ error: '登录过期，请重新登录' })
     }
+    
     try {
-        req.user = jwt.verify(token, process.env.JWT_SECRET) // 使用环境变量中的 JWT 密钥
-        console.log('JWT 验证成功，用户信息：', req.user)
+        req.user = jwt.verify(token, process.env.JWT_SECRET)
+        console.log('✅ JWT 验证成功，用户信息：', req.user)
         next()
     } catch (err) {
+        console.error('❌ JWT 验证失败:', err.message)
         res.clearCookie('token')
         return res.status(401).json({ error: '登录过期，请重新登录' })
     }

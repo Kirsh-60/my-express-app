@@ -8,8 +8,8 @@ const router = express.Router()
 // 配置 multer 存储选项
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // 设置上传文件存储的文件夹
-    const uploadDir = path.join(__dirname, '../../uploads')
+    // 设置上传文件存储的文件夹为服务器绝对路径
+    const uploadDir = '/var/www/images'
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true })
     }
@@ -38,8 +38,7 @@ router.post('/uploadImgs', upload.single('image'), (req, res) => {
   const fileBuffer = fs.readFileSync(req.file.path)
   const hash = crypto.createHash('md5').update(fileBuffer).digest('hex')
   const existingFilePath = path.join(
-    __dirname,
-    '../../uploads',
+    '/var/www/images',
     `${hash}-${req.file.originalname}`
   )
 
@@ -50,7 +49,7 @@ router.post('/uploadImgs', upload.single('image'), (req, res) => {
     return res.json({
       code: 200,
       data: {
-        imageUrl: `https://blackbuy.asia/uploads/${hash}-${req.file.originalname}`,
+        imageUrl: `https://blackbuy.asia/images/${hash}-${req.file.originalname}`,
       },
     })
   }
@@ -62,7 +61,7 @@ router.post('/uploadImgs', upload.single('image'), (req, res) => {
     code: 200,
     msg: '图片上传成功',
     data: {
-      imageUrl: `https://blackbuy.asia/uploads/${hash}-${req.file.originalname}`,
+      imageUrl: `https://blackbuy.asia/images/${hash}-${req.file.originalname}`,
     },
   })
 })

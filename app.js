@@ -147,7 +147,7 @@ app.use((err, req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*')
     res.header(
         'Access-Control-Allow-Headers',
-        'Origin, X-Requested-With, Content-Type, Accept'
+        'Origin, X-Requested-With, Content-Type, Accept, token'
     )
     res.status(500).json({
         code: -1,

@@ -5,7 +5,6 @@ const express = require('express')
 const session = require('express-session')
 const morgan = require('morgan')
 const helmet = require('helmet')
-const cors = require('cors')
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
 const path = require('path')
@@ -15,13 +14,13 @@ const jwt = require('jsonwebtoken')
 // 安全相关中间件
 app.use(helmet())
 
-// 跨域支持
-app.use(
-    cors({
-        origin: (origin, callback) => callback(null, true),
-        credentials: true, // 允许跨域携带 Cookie
-    })
-)
+// 移除或注释掉以下 CORS 中间件，交由 nginx 处理跨域
+// app.use(
+//     cors({
+//         origin: (origin, callback) => callback(null, true),
+//         credentials: true, // 允许跨域携带 Cookie
+//     })
+// )
 
 // 日志记录
 app.use(morgan('dev'))
@@ -72,6 +71,8 @@ const whiteList = [
     '/users/captcha', // 获取验证码接口
     '/users/register', //用户注册接口
     '/system/system', // 系统信息接口
+    // '/react/bills', // React 系统信息接口
+    // '/react/info', // React 系统信息接口
     // 如需更多开放接口，按需添加
 ]
 
@@ -83,26 +84,30 @@ const jwtAuth = (req, res, next) => {
         console.log('跳过认证，访问白名单接口：', req.path)
         return next()
     }
-    
+
     // 修复token获取逻辑
-    const token = 
-        req.Token ||
-        req.cookies.token ||
-        req.headers.token ||  // 添加从headers直接获取token
-        (req.headers.authorization && req.headers.authorization.split(' ')[1])
-    
+    const token =
+        // req.Token ||
+        // req.cookies.token ||
+        // req.headers.token ||  // 添加从headers直接获取token
+        req.headers.authorization && req.headers.authorization.split(' ')[1]
+
     console.log('JWT 验证中间件 - Token获取结果:', {
-        fromCookie: req.cookies.token ? `${req.cookies.token.substring(0, 20)}...` : null,
-        fromHeader: req.headers.token ? `${req.headers.token.substring(0, 20)}...` : null,
+        fromCookie: req.cookies.token
+            ? `${req.cookies.token.substring(0, 20)}...`
+            : null,
+        fromHeader: req.headers.token
+            ? `${req.headers.token.substring(0, 20)}...`
+            : null,
         fromAuth: req.headers.authorization,
-        finalToken: token ? `${token.substring(0, 20)}...` : null
+        finalToken: token ? `${token.substring(0, 20)}...` : null,
     })
-    
+
     if (!token) {
         console.log('❌ 未找到token')
         return res.status(401).json({ error: '登录过期，请重新登录' })
     }
-    
+
     try {
         req.user = jwt.verify(token, process.env.JWT_SECRET)
         console.log('✅ JWT 验证成功，用户信息：', req.user)
@@ -153,6 +158,19 @@ app.use((err, req, res, next) => {
 
 // 启动服务器
 const PORT = 3000
+const os = require('os')
 app.listen(PORT, '0.0.0.0', () => {
+    // 获取本机局域网IP
+    const interfaces = os.networkInterfaces()
+    let lanIP = 'localhost'
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                lanIP = iface.address
+                break
+            }
+        }
+    }
     console.log(`Server is running on http://81.70.28.17:${PORT}`)
+    console.log(`本机局域网访问地址: http://${lanIP}:${PORT}`)
 })

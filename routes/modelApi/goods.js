@@ -152,5 +152,23 @@ router.get('/deleteGoods/:id', async (req, res) => {
     })
   }
 })
-
+// 获取商品列表，不带分页
+router.get('/allGoods', async (req, res) => {
+  const sql = 'SELECT * FROM goods'
+  try {
+    const [rows] = await db.query(sql)
+    res.json({
+      code: 200,
+      msg: '获取商品列表成功',
+      data: rows,
+    })
+  } catch (err) {
+    console.error('获取商品列表失败：', err)
+    res.status(200).json({
+      code: -1,
+      msg: '获取商品列表失败',
+      data: null,
+    })
+  }
+})
 module.exports = router

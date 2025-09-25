@@ -2,6 +2,7 @@ require('dotenv').config()
 const db = require('./config/db')
 
 const express = require('express')
+const cors = require('cors')
 const session = require('express-session')
 const morgan = require('morgan')
 const helmet = require('helmet')
@@ -9,18 +10,17 @@ const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
 const path = require('path')
 const app = express()
+// 针对带 credentials 的跨域请求配置 CORS
+app.use(
+    cors({
+        origin: 'http://localhost:5173',
+        credentials: true,
+    })
+)
 
 const jwt = require('jsonwebtoken')
 // 安全相关中间件
 app.use(helmet())
-
-// 移除或注释掉以下 CORS 中间件，交由 nginx 处理跨域
-// app.use(
-//     cors({
-//         origin: (origin, callback) => callback(null, true),
-//         credentials: true, // 允许跨域携带 Cookie
-//     })
-// )
 
 // 日志记录
 app.use(morgan('dev'))
@@ -64,6 +64,7 @@ app.use(
 
 // 路由设置
 const apiRouter = require('./routes/api')
+app.use('/api', apiRouter)
 
 // 定义 JWT 白名单接口，无需认证
 const whiteList = [
@@ -89,8 +90,8 @@ const jwtAuth = (req, res, next) => {
     const token =
         req.Token ||
         req.cookies.token ||
-        req.headers.token ||  // 添加从headers直接获取token
-        req.headers.authorization && req.headers.authorization.split(' ')[1]
+        req.headers.token || // 添加从headers直接获取token
+        (req.headers.authorization && req.headers.authorization.split(' ')[1])
 
     console.log('JWT 验证中间件 - Token获取结果:', {
         fromCookie: req.cookies.token

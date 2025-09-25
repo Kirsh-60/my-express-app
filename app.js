@@ -87,9 +87,9 @@ const jwtAuth = (req, res, next) => {
 
     // 修复token获取逻辑
     const token =
-        // req.Token ||
-        // req.cookies.token ||
-        // req.headers.token ||  // 添加从headers直接获取token
+        req.Token ||
+        req.cookies.token ||
+        req.headers.token ||  // 添加从headers直接获取token
         req.headers.authorization && req.headers.authorization.split(' ')[1]
 
     console.log('JWT 验证中间件 - Token获取结果:', {

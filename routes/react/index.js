@@ -14,67 +14,54 @@ router.get('/bills', (req, res) => {
         },
     })
 })
-router.get('/info', (req, res) => {
-    // 状态200
+// 菜单
+router.get('/info', async (req, res) => {
     res.set('Cache-Control', 'no-store')
-    res.status(200).json({
-        status: 200,
-        message: 'React 专用接口',
-        data: {
-            path: [
-                {
-                    key: '1',
-                    icon: 'UserOutlined',
-                    label: '首页',
-                    url: '/',
+    const db = require('../../config/db')
+    try {
+        // 查询所有菜单
+        const [rows] = await db.query('SELECT * FROM menu ORDER BY sort ASC, id ASC')
+
+        // 构建树形结构
+        function buildTree(list, parentId = null) {
+            return list
+                .filter(item => item.parent_id === parentId)
+                .map(item => {
+                    const children = buildTree(list, item.id)
+                    const node = {
+                        key: item.menu_key,
+                        icon: item.icon,
+                        label: item.label,
+                        url: item.url,
+                    }
+                    if (children.length > 0) node.children = children
+                    return node
+                })
+        }
+
+        const menuTree = buildTree(rows)
+
+        res.status(200).json({
+            status: 200,
+            message: 'React 专用接口',
+            data: {
+                path: menuTree,
+                userInfo: {
+                    name: 'React User',
+                    age: 30,
+                    email: '',
+                    role: 'admin',
+                    permissions: ['read', 'write', 'execute'],
+                    avatar: 'https://www.example.com/avatar.png',
+                    phone: '123-456-7890',
+                    address: '123 React St, JavaScript City, Web',
                 },
-                {
-                    key: 'sub1',
-                    icon: 'LaptopOutlined',
-                    label: '用户1',
-                    children: [
-                        {
-                            key: '2',
-                            label: 'Tom',
-                            url: '/user/tom', // 修改为 /user
-                        },
-                        {
-                            key: '3',
-                            label: 'Bill',
-                            url: '/user/bill',
-                        },
-                    ],
-                },
-                {
-                    key: 'sub2',
-                    icon: 'NotificationOutlined',
-                    label: '用户2',
-                    children: [
-                        {
-                            key: '4',
-                            label: 'Tom2',
-                            url: '/user/tom2',
-                        },
-                        {
-                            key: '5',
-                            label: 'Bill2',
-                            url: '/user/bill2',
-                        },
-                    ],
-                },
-            ],
-            userInfo: {
-                name: 'React User',
-                age: 30,
-                email: '',
-                role: 'admin',
-                permissions: ['read', 'write', 'execute'],
-                avatar: 'https://www.example.com/avatar.png',
-                phone: '123-456-7890',
-                address: '123 React St, JavaScript City, Web',
             },
-        },
-    })
+        })
+    } catch (err) {
+        console.error('数据库查询出错:', err)
+        res.status(500).json({ error: err.message })
+    }
 })
 
 router.get('/statisticList', (req, res) => {

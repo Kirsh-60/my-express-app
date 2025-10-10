@@ -18,29 +18,105 @@ router.get('/bills', (req, res) => {
 router.get('/info', async (req, res) => {
     res.set('Cache-Control', 'no-store')
     const db = require('../../config/db')
+    // 假设 userId 从请求头或 query 获取
+    const userId = req.headers['userid'] || req.query.userId
+    if (!userId) {
+        return res.status(401).json({
+            status: 401,
+            message: '缺少用户身份信息',
+            data: null,
+        })
+    }
     try {
-        // 查询所有菜单
-        const [rows] = await db.query('SELECT * FROM menu ORDER BY sort ASC, id ASC')
-
+        // 查询用户角色
+        const [userRows] = await db.query(
+            'SELECT role FROM user WHERE id = ?',
+            [userId]
+        )
+        if (userRows.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: '用户不存在',
+                data: null,
+            })
+        }
+        const roleId = userRows[0].role
+        // 查询角色的菜单权限
+        const [roleRows] = await db.query(
+            'SELECT menu_permissions FROM role WHERE id = ?',
+            [roleId]
+        )
+        if (roleRows.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: '角色不存在',
+                data: null,
+            })
+        }
+        // debug输出原始menu_permissions
+        console.log('role.menu_permissions:', roleRows[0].menu_permissions)
+        let menuKeys = []
+        const rawMenuPermissions = roleRows[0].menu_permissions
+        if (Array.isArray(rawMenuPermissions)) {
+            menuKeys = rawMenuPermissions
+        } else {
+            try {
+                menuKeys = JSON.parse(rawMenuPermissions || '[]')
+            } catch (e) {
+                menuKeys = []
+            }
+        }
+        if (!Array.isArray(menuKeys)) {
+            menuKeys = []
+        }
+        if (menuKeys.length === 0) {
+            return res.status(200).json({
+                status: 200,
+                message: '该角色未绑定菜单',
+                data: {
+                    path: [],
+                    userInfo: { role: roleId },
+                    debug: { menuKeys, raw: rawMenuPermissions },
+                },
+            })
+        }
+        // 查询菜单表，获取这些 key 的菜单
+        const [menuRows] = await db.query(
+            `SELECT * FROM menu WHERE menu_key IN (${menuKeys
+                .map(() => '?')
+                .join(',')}) ORDER BY sort ASC, id ASC`,
+            menuKeys
+        )
+        if (menuRows.length === 0) {
+            return res.status(200).json({
+                status: 200,
+                message: '该角色未绑定菜单（无匹配菜单项）',
+                data: {
+                    path: [],
+                    userInfo: { role: roleId },
+                    debug: { menuKeys, menuRows },
+                },
+            })
+        }
         // 构建树形结构
-        function buildTree(list, parentId = null) {
+        function buildTree(list, parentId = null, parentKey = null) {
             return list
-                .filter(item => item.parent_id === parentId)
-                .map(item => {
-                    const children = buildTree(list, item.id)
+                .filter((item) => item.parent_id === parentId)
+                .map((item) => {
+                    const children = buildTree(list, item.id, item.menu_key)
                     const node = {
                         key: item.menu_key,
                         icon: item.icon,
                         label: item.label,
                         url: item.url,
+                        parentKey: parentKey,
+                        sort: item.sort,
                     }
                     if (children.length > 0) node.children = children
                     return node
                 })
         }
-
-        const menuTree = buildTree(rows)
-
+        const menuTree = buildTree(menuRows)
         res.status(200).json({
             status: 200,
             message: 'React 专用接口',
@@ -50,8 +126,8 @@ router.get('/info', async (req, res) => {
                     name: 'React User',
                     age: 30,
                     email: '',
-                    role: 'admin',
-                    permissions: ['read', 'write', 'execute'],
+                    role: roleId,
+                    permissions: [],
                     avatar: 'https://www.example.com/avatar.png',
                     phone: '123-456-7890',
                     address: '123 React St, JavaScript City, Web',
@@ -63,7 +139,7 @@ router.get('/info', async (req, res) => {
         res.status(500).json({ error: err.message })
     }
 })
-
+// ...existing code...
 router.get('/statisticList', (req, res) => {
     // 状态200
     res.set('Cache-Control', 'no-store')
@@ -161,34 +237,38 @@ router.get('/statisticList', (req, res) => {
         },
     })
 })
-// 获取用户列表 从Tom表里获取，支持分页
+// 获取用户列表 从user表里获取，支持分页
 router.post('/userlist', async (req, res) => {
     res.set('Cache-Control', 'no-store')
     const db = require('../../config/db')
     const page = Number(req.body.page) || 1
     const pageSize = Number(req.body.pageSize) || 10
     const offset = (page - 1) * pageSize
-    const name = req.body.name || ''
+    const name = req.body.username || ''
 
     try {
         // 1. 查总数
-        let countSql = 'SELECT COUNT(*) AS total FROM Tom'
+        let countSql = 'SELECT COUNT(*) AS total FROM user'
         let countParams = []
         if (name) {
-            countSql += ' WHERE name LIKE ?'
+            countSql += ' WHERE username LIKE ?'
             countParams.push(`%${name}%`)
         }
         const [countResult] = await db.query(countSql, countParams)
         const total = countResult[0].total
 
-        // 2. 查分页数据
-        let dataSql = 'SELECT * FROM Tom'
+        // 2. 查分页数据，联表查角色名
+        let dataSql = `
+            SELECT u.*, r.name AS rolename
+            FROM user u
+            LEFT JOIN role r ON u.role = r.id
+        `
         let dataParams = []
         if (name) {
-            dataSql += ' WHERE name LIKE ?'
+            dataSql += ' WHERE u.username LIKE ?'
             dataParams.push(`%${name}%`)
         }
-        dataSql += ' ORDER BY createTime DESC LIMIT ?, ?'
+        dataSql += ' ORDER BY u.createTime DESC LIMIT ?, ?'
         dataParams.push(Number(offset), Number(pageSize))
 
         const [results] = await db.query(dataSql, dataParams)
@@ -234,7 +314,7 @@ router.post('/adduser', async (req, res) => {
         res.status(500).json({ error: err.message })
     }
 })
-// 删除Tom表里的用户
+// 删除user表里的用户
 router.post('/deleteuser', async (req, res) => {
     res.set('Cache-Control', 'no-store')
     const db = require('../../config/db')
@@ -247,7 +327,7 @@ router.post('/deleteuser', async (req, res) => {
         })
     }
     try {
-        const sql = 'DELETE FROM Tom WHERE id = ?'
+        const sql = 'DELETE FROM user WHERE id = ?'
         const params = [id]
         const [result] = await db.query(sql, params)
         if (result.affectedRows === 0) {
@@ -267,12 +347,12 @@ router.post('/deleteuser', async (req, res) => {
         res.status(500).json({ error: err.message })
     }
 })
-// 编辑Tom表里的用户
+// 编辑user表里的用户
 router.post('/edituser', async (req, res) => {
     res.set('Cache-Control', 'no-store')
     const db = require('../../config/db')
-    const { id, name, age, address } = req.body
-    if (!id || !name || !age || !address) {
+    const { id, username, age, address, role } = req.body
+    if (!id || !username || !age || !address || !role) {
         return res.status(400).json({
             status: 400,
             message: '缺少必要的用户信息',
@@ -280,8 +360,9 @@ router.post('/edituser', async (req, res) => {
         })
     }
     try {
-        const sql = 'UPDATE Tom SET name = ?, age = ?, address = ? WHERE id = ?'
-        const params = [name, age, address, id]
+        const sql =
+            'UPDATE user SET username = ?, age = ?, role = ?, address = ? WHERE id = ?'
+        const params = [username, age, role, address, id]
         const [result] = await db.query(sql, params)
         if (result.affectedRows === 0) {
             return res.status(404).json({
@@ -293,10 +374,242 @@ router.post('/edituser', async (req, res) => {
         res.json({
             status: 200,
             message: '编辑用户成功',
-            data: { id, name, age, address },
+            data: { id, username, age, address, role },
         })
     } catch (err) {
         console.error('数据库更新出错:', err)
+        res.status(500).json({ error: err.message })
+    }
+})
+// 编辑菜单接口
+router.post('/editmenu', async (req, res) => {
+    res.set('Cache-Control', 'no-store')
+    const db = require('../../config/db')
+    const { label, url, icon, key, parentKey } = req.body
+    if (!label || !url || !icon || !key) {
+        return res.status(400).json({
+            status: 400,
+            message: '缺少必要的菜单信息',
+            data: null,
+        })
+    }
+    try {
+        // 查询是否存在该菜单项
+        const [rows] = await db.query('SELECT * FROM menu WHERE menu_key = ?', [
+            key,
+        ])
+        if (rows.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: '菜单项不存在',
+                data: null,
+            })
+        }
+        // 更新菜单项
+        const sql =
+            'UPDATE menu SET label = ?, url = ?, icon = ?, parent_id = ? WHERE menu_key = ?'
+        // parent_id 需要通过 parentKey 查询对应 id，如果 parentKey 为 null，则 parent_id 设为 null
+        let parentId = null
+        if (parentKey) {
+            const [parentRows] = await db.query(
+                'SELECT id FROM menu WHERE menu_key = ?',
+                [parentKey]
+            )
+            if (parentRows.length > 0) {
+                parentId = parentRows[0].id
+            }
+        }
+        await db.query(sql, [label, url, icon, parentId, key])
+        res.json({
+            status: 200,
+            message: '编辑菜单成功',
+            data: { label, url, icon, key, parentKey },
+        })
+    } catch (err) {
+        console.error('数据库菜单编辑出错:', err)
+        res.status(500).json({ error: err.message })
+    }
+})
+// 新增一级菜单
+router.post('/addmenufirst', async (req, res) => {
+    res.set('Cache-Control', 'no-store')
+    const db = require('../../config/db')
+    const { label, url, icon } = req.body
+    if (!label || !url || !icon) {
+        return res.status(404).json({
+            status: 404,
+            message: '缺少必要的菜单信息',
+            data: null,
+        })
+    }
+    try {
+        // 新增一级菜单，parent_id 设为 null，sort 设为当前最大 sort + 1
+        const [maxSortRows] = await db.query(
+            'SELECT MAX(sort) AS maxSort FROM menu'
+        )
+        const maxSort = maxSortRows[0].maxSort || 0
+        // 生成唯一 menu_key
+        const menuKey = `${label}_${Date.now()}`
+        const sql =
+            'INSERT INTO menu (label, url, icon, parent_id, sort, menu_key) VALUES (?, ?, ?, NULL, ?, ?)'
+        const params = [label, url, icon, maxSort + 1, menuKey]
+        const [result] = await db.query(sql, params)
+        res.json({
+            status: 200,
+            message: '新增一级菜单成功',
+            data: { id: result.insertId, label, url, icon, menu_key: menuKey },
+        })
+    } catch (err) {
+        console.error('数据库插入菜单出错:', err)
+        res.status(500).json({ error: err.message })
+    }
+})
+// 添加下级菜单，parentKey 指定上级菜单
+router.post('/addmenulower', async (req, res) => {
+    res.set('Cache-Control', 'no-store')
+    const db = require('../../config/db')
+    const { label, url, icon, parentKey } = req.body
+    if (!label || !url || !icon || !parentKey) {
+        return res.status(404).json({
+            status: 404,
+            message: '缺少必要的菜单信息',
+            data: null,
+        })
+    }
+    try {
+        // 通过 parentKey 查询对应 id
+        const [parentRows] = await db.query(
+            'SELECT id FROM menu WHERE menu_key = ?',
+            [parentKey]
+        )
+        if (parentRows.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: '上级菜单不存在',
+                data: null,
+            })
+        }
+        const parentId = parentRows[0].id
+        // 新增下级菜单，sort 设为当前同级最大 sort + 1
+        const [maxSortRows] = await db.query(
+            'SELECT MAX(sort) AS maxSort FROM menu WHERE parent_id = ?',
+            [parentId]
+        )
+        const maxSort = maxSortRows[0].maxSort || 0
+        // 生成唯一 menu_key
+        const menuKey = `${label}_${Date.now()}`
+        const sql =
+            'INSERT INTO menu (label, url, icon, parent_id, sort, menu_key) VALUES (?, ?, ?, ?, ?, ?)'
+        const params = [label, url, icon, parentId, maxSort + 1, menuKey]
+        const [result] = await db.query(sql, params)
+        res.json({
+            status: 200,
+            message: '新增下级菜单成功',
+            data: {
+                id: result.insertId,
+                label,
+                url,
+                icon,
+                menu_key: menuKey,
+                parentKey,
+            },
+        })
+    } catch (err) {
+        console.error('数据库插入下级菜单出错:', err)
+        res.status(500).json({ error: err.message })
+    }
+})
+// 根据key删除菜单
+router.get('/deletemenu', async (req, res) => {
+    res.set('Cache-Control', 'no-store')
+    const db = require('../../config/db')
+    // 修改为从 req.query 获取 key
+    const { key } = req.query
+    if (!key) {
+        return res.status(404).json({
+            status: 404,
+            message: '缺少菜单key',
+            data: null,
+        })
+    }
+    try {
+        // 1. 查询是否存在该菜单项
+        const [rows] = await db.query('SELECT * FROM menu WHERE menu_key = ?', [
+            key,
+        ])
+        if (rows.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: '菜单项不存在',
+                data: null,
+            })
+        }
+        const menuId = rows[0].id
+        // 2. 删除该菜单及其所有子菜单
+        const deleteMenuAndChildren = async (id) => {
+            // 先删除子菜单
+            const [childRows] = await db.query(
+                'SELECT id FROM menu WHERE parent_id = ?',
+                [id]
+            )
+            for (const child of childRows) {
+                await deleteMenuAndChildren(child.id)
+            }
+            // 然后删除当前菜单
+            await db.query('DELETE FROM menu WHERE id = ?', [id])
+        }
+        await deleteMenuAndChildren(menuId)
+        res.json({
+            status: 200,
+            message: '删除菜单成功',
+            data: { key },
+        })
+    } catch (err) {
+        console.error('数据库删除菜单出错:', err)
+        res.status(500).json({ error: err.message })
+    }
+})
+// 获取完整的菜单树
+router.get('/menutree', async (req, res) => {
+    res.set('Cache-Control', 'no-store')
+    const db = require('../../config/db')
+    try {
+        const [menuRows] = await db.query(
+            'SELECT * FROM menu ORDER BY sort ASC, id ASC'
+        )
+        if (menuRows.length === 0) {
+            return res.status(200).json({
+                status: 200,
+                message: '当前无菜单项',
+                data: { path: [] },
+            })
+        }
+        // 构建树形结构
+        function buildTree(list, parentId = null, parentKey = null) {
+            return list
+                .filter((item) => item.parent_id === parentId)
+                .map((item) => {
+                    const children = buildTree(list, item.id, item.menu_key)
+                    const node = {
+                        key: item.menu_key,
+                        icon: item.icon,
+                        label: item.label,
+                        url: item.url,
+                        parentKey: parentKey,
+                        sort: item.sort,
+                    }
+                    if (children.length > 0) node.children = children
+                    return node
+                })
+        }
+        const menuTree = buildTree(menuRows)
+        res.status(200).json({
+            status: 200,
+            message: '获取菜单树成功',
+            data: { path: menuTree },
+        })
+    } catch (err) {
+        console.error('数据库查询菜单树出错:', err)
         res.status(500).json({ error: err.message })
     }
 })

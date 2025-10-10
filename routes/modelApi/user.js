@@ -118,6 +118,7 @@ router.post('/login', async (req, res) => {
             'SELECT id, username, password FROM user WHERE username=?',
             [username]
         )
+        console.log('数据库查询结果:', rows)
         if (rows.length === 0) {
             return res
                 .status(200)

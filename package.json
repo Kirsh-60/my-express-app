@@ -27,6 +27,7 @@
     "multer": "^2.0.0",
     "mysql2": "^3.14.1",
     "nodejs-websocket": "^1.7.2",
+    "redis": "^5.10.0",
     "svg-captcha": "^1.4.0"
   }
 }

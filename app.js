@@ -1,6 +1,11 @@
 require('dotenv').config()
 const db = require('./config/db')
-
+const {
+    redisClient,
+    connectRedis,
+    printRedisKey,
+    setRedisKey,
+} = require('./config/redis')
 const express = require('express')
 const cors = require('cors')
 const session = require('express-session')
@@ -18,6 +23,13 @@ app.use(
     })
 )
 
+// 获取redis连接
+connectRedis(printRedisKey('mykey'), setRedisKey('INFO', 'testValue')).catch(
+    (err) => {
+        console.error('无法连接到Redis服务器:', err)
+        process.exit(1)
+    }
+)
 const jwt = require('jsonwebtoken')
 // 安全相关中间件
 app.use(helmet())
@@ -72,6 +84,7 @@ const whiteList = [
     '/users/captcha', // 获取验证码接口
     '/users/register', //用户注册接口
     '/system/system', // 系统信息接口
+    '/react/dealerList', // 经销商列表接口
     // '/react/bills', // React 系统信息接口
     // '/react/info', // React 系统信息接口
     // 如需更多开放接口，按需添加

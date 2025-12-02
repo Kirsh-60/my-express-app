@@ -30,7 +30,7 @@ router.get('/info', async (req, res) => {
     try {
         // 查询用户角色
         const [userRows] = await db.query(
-            'SELECT role FROM user WHERE id = ?',
+            'SELECT username, role FROM user WHERE id = ?',
             [userId]
         )
         if (userRows.length === 0) {
@@ -41,6 +41,7 @@ router.get('/info', async (req, res) => {
             })
         }
         const roleId = userRows[0].role
+        const username = userRows[0].username
         // 查询角色的菜单权限
         const [roleRows] = await db.query(
             'SELECT menu_permissions FROM role WHERE id = ?',
@@ -75,7 +76,7 @@ router.get('/info', async (req, res) => {
                 message: '该角色未绑定菜单',
                 data: {
                     path: [],
-                    userInfo: { role: roleId },
+                    userInfo: { name: username, role: roleId },
                     debug: { menuKeys, raw: rawMenuPermissions },
                 },
             })
@@ -93,7 +94,7 @@ router.get('/info', async (req, res) => {
                 message: '该角色未绑定菜单（无匹配菜单项）',
                 data: {
                     path: [],
-                    userInfo: { role: roleId },
+                    userInfo: { name: username, role: roleId },
                     debug: { menuKeys, menuRows },
                 },
             })
@@ -123,14 +124,8 @@ router.get('/info', async (req, res) => {
             data: {
                 path: menuTree,
                 userInfo: {
-                    name: 'React User',
-                    age: 30,
-                    email: '',
+                    name: username,
                     role: roleId,
-                    permissions: [],
-                    avatar: 'https://www.example.com/avatar.png',
-                    phone: '123-456-7890',
-                    address: '123 React St, JavaScript City, Web',
                 },
             },
         })
@@ -268,7 +263,7 @@ router.post('/userlist', async (req, res) => {
             dataSql += ' WHERE u.username LIKE ?'
             dataParams.push(`%${name}%`)
         }
-        dataSql += ' ORDER BY u.createTime DESC LIMIT ?, ?'
+        dataSql += ' ORDER BY u.age DESC LIMIT ?, ?'
         dataParams.push(Number(offset), Number(pageSize))
 
         const [results] = await db.query(dataSql, dataParams)
@@ -290,9 +285,9 @@ router.post('/userlist', async (req, res) => {
 router.post('/adduser', async (req, res) => {
     res.set('Cache-Control', 'no-store')
     const db = require('../../config/db')
-    const { name, age, address } = req.body
+    const { name, age, address, role } = req.body
     const createTime = new Date()
-    if (!name || !age || !address) {
+    if (!name || age === undefined || age === null || !address) {
         return res.status(400).json({
             status: 400,
             message: '缺少必要的用户信息',
@@ -301,13 +296,20 @@ router.post('/adduser', async (req, res) => {
     }
     try {
         const sql =
-            'INSERT INTO Tom (name, age, address, createTime) VALUES (?, ?, ?, ?)'
-        const params = [name, age, address, createTime]
+            'INSERT INTO user (username, age, address, role, createTime) VALUES (?, ?, ?, ?, ?)'
+        const params = [name, age, address, role ?? null, createTime]
         const [result] = await db.query(sql, params)
+        if (!result || result.affectedRows !== 1) {
+            return res.status(500).json({
+                status: 500,
+                message: '添加用户失败',
+                data: null,
+            })
+        }
         res.json({
             status: 200,
             message: '添加用户成功',
-            data: { id: result.insertId, name, age, address },
+            data: { id: result.insertId, name, age, address, role: role ?? null },
         })
     } catch (err) {
         console.error('数据库插入出错:', err)

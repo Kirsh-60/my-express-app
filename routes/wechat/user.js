@@ -4,7 +4,7 @@ const axios = require('axios')
 const db = require('../../config/db') // 调用你的 MySQL 连接池
 // 微信小程序配置
 const appid = 'wxa16c180ce0b5c9cf'
-const secret = 'fce28912265139307baeace7bbfc31ce'
+const secret = '5eb8d325bee5473696ab2d6c59ad67e7'
 // 获取用户微信小程序openid
 router.post('/getOpenid', async (req, res) => {
     try {

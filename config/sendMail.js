@@ -66,5 +66,15 @@ async function sendMail(to, subject) {
 
     console.log('邮件发送成功: %s', info.messageId)
 }
-
+// 启动后试用一次公众号推送
+const appid = 'wxa16c180ce0b5c9cf'
+const secret = '5eb8d325bee5473696ab2d6c59ad67e7'
+const template_id = 'lsPFZMfCwRv62aNkC21WK7hdQAhJii2ldwHIop4FBcg'
+const data = {
+    first: { value: '财务确认单', color: '#173177' },
+    keyword1: { value: '服务费', color: '#173177' },
+    keyword2: { value: '¥2,000.00', color: '#173177' },
+    remark: { value: '如有疑问请联系财务部', color: '#173177' },
+}
+sendWX.pushToDefaultUser(appid, secret, template_id, data)
 module.exports = sendMail

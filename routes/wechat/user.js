@@ -23,12 +23,32 @@ router.post('/getOpenid', async (req, res) => {
         )
         console.log('获取openid响应:', response.data)
         const { openid, session_key } = response.data
-
-        // 返回openid给小程序端
-        res.json({
-            openid,
-            session_key, // 如果需要的话
-        })
+        // 检查是否成功获取openid
+        if (!openid) {
+            return res.status(400).json({
+                error: '无法获取openid',
+            })
+        } else {
+            console.log('获取到的openid:', openid)
+            // 调用/login接口进行用户登录 将用户数据存到数据库
+            // 返回openid给小程序端
+            const { nickName, avatarUrl } = req.body.userInfo || {}
+            const [rows] = await db.query(
+                'INSERT INTO app_users (openid, name, avatar) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, avatar = ?',
+                [openid, nickName, avatarUrl, nickName, avatarUrl]
+            )
+            if (rows.affectedRows > 0) {
+                console.log('用户信息已存储或更新:', {
+                    openid,
+                    name: nickName,
+                    avatarUrl,
+                })
+            }
+            res.json({
+                openid,
+                session_key, // 如果需要的话
+            })
+        }
     } catch (error) {
         console.error('获取openid失败:', error)
         res.status(500).json({
@@ -36,27 +56,5 @@ router.post('/getOpenid', async (req, res) => {
         })
     }
 })
-// 用户登录 保存用户登录信息
-router.post('/login', async (req, res) => {
-    try {
-        const { openid, name, avatar } = req.body
-        // 这里可以将用户信息保存到数据库
-        // 假设你有一个用户表，可以执行插入或更新操作
-        const [rows] = await db.query(
-            'INSERT INTO app_users (openid, name, avatar) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, avatar = ?',
-            [openid, name, avatar, name, avatar]
-        )
-        // 返回登录成功的响应
-        res.json({
-            message: '登录成功',
-            openid,
-            userInfo: { openid, name, avatar },
-        })
-    } catch (error) {
-        console.error('用户登录失败:', error)
-        res.status(500).json({
-            error: '用户登录失败',
-        })
-    }
-})
+
 module.exports = router
